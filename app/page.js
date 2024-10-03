@@ -1,101 +1,222 @@
-import Image from "next/image";
+"use client"
+
+import { useEffect, useState, useRef } from "react";
+import { Line, Bar, Doughnut } from "react-chartjs-2";
+import Chart from "chart.js/auto";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel
+} from "@/components/ui/select";
+
+
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [selectedCoin, setSelectedCoin] = useState("ethusdt");
+  const [loading, setLoading] = useState(false);
+  const [interval, setInterval] = useState("1m");
+  const [chartData, setChartData] = useState([]);
+  const [volumeData, setVolumeData] = useState([]);
+  const [marketDominanceData, setMarketDominanceData] = useState([45, 30, 25]); // Example pie chart data
+  const ws = useRef(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const savedData = localStorage.getItem(selectedCoin);
+    if (savedData) {
+      setChartData(JSON.parse(savedData));
+    }
+    startWebSocket(selectedCoin, interval);
+
+    return () => {
+      if (ws.current) ws.current.close();
+    };
+  }, [selectedCoin, interval]);
+
+  const startWebSocket = (symbol, interval) => {
+    if (ws.current) ws.current.close();
+
+    ws.current = new WebSocket(
+      `wss://stream.binance.com:9443/ws/${symbol}@kline_${interval}`
+    );
+
+    ws.current.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      const newCandle = message.k;
+
+      if (newCandle.x) {
+        // Completed candlestick
+        setChartData((prev) => {
+          const updatedData = [
+            ...prev,
+            {
+              time: newCandle.t,
+              open: newCandle.o,
+              high: newCandle.h,
+              low: newCandle.l,
+              close: newCandle.c,
+              volume: newCandle.v, // Example for volume
+            },
+          ];
+
+          localStorage.setItem(selectedCoin, JSON.stringify(updatedData));
+          return updatedData;
+        });
+      }
+    };
+  };
+
+  const formatChartData = () => {
+    const labels = chartData.map((c) => new Date(c.time).toLocaleTimeString());
+    const closePrices = chartData.map((c) => parseFloat(c.close));
+    const volume = chartData.map((c) => parseFloat(c.volume));
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: `Price (${selectedCoin.toUpperCase()})`,
+          data: closePrices,
+          borderColor: "#4caf50",
+          backgroundColor: "rgba(76, 175, 80, 0.2)",
+          fill: true,
+        },
+      ],
+    };
+  };
+
+  const formatVolumeData = () => {
+    const labels = chartData.map((c) => new Date(c.time).toLocaleTimeString());
+    const volume = chartData.map((c) => parseFloat(c.volume));
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: `Volume (${selectedCoin.toUpperCase()})`,
+          data: volume,
+          backgroundColor: "#ff5722",
+        },
+      ],
+    };
+  };
+
+  const marketDominanceChartData = {
+    labels: ["ETH", "BNB", "DOT"],
+    datasets: [
+      {
+        label: "Market Dominance (%)",
+        data: marketDominanceData,
+        backgroundColor: ["#ff6384", "#36a2eb", "#ffcd56"],
+      },
+    ],
+  };
+
+
+  return (
+    <div className="p-10 bg-gray-100 min-h-screen">
+      <h1 className="text-3xl font-bold text-center mb-8">
+        Binance Market Data
+      </h1>
+
+      {/* Cryptocurrency Select Dropdown */}
+      <div className="flex justify-center mb-6">
+        <Select onValueChange={setSelectedCoin}>
+          <SelectTrigger className="w-[180px] mr-4">
+            <SelectValue placeholder="Select Cryptocurrency" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Cryptocurrency</SelectLabel>
+              <SelectItem value="ethusdt">ETH/USDT</SelectItem>
+              <SelectItem value="bnbusdt">BNB/USDT</SelectItem>
+              <SelectItem value="dotusdt">DOT/USDT</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
+        {/* Time Interval Select Dropdown */}
+        <Select onValueChange={setInterval}>
+          <SelectTrigger className="w-[180px] ml-4">
+            <SelectValue placeholder="Select Interval" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Interval</SelectLabel>
+              <SelectItem value="1m">1 Minute</SelectItem>
+              <SelectItem value="3m">3 Minutes</SelectItem>
+              <SelectItem value="5m">5 Minutes</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Line Chart for Price */}
+      
+        <div className="w-full md:w-3/4 lg:w-1/2 mx-auto bg-white p-6 rounded shadow-md mb-10">
+          <Line
+            data={formatChartData()}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: "top",
+                },
+                tooltip: {
+                  enabled: true,
+                },
+              },
+            }}
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+      {/* Bar Chart for Volume */}
+      
+        <div className="w-full md:w-3/4 lg:w-1/2 mx-auto bg-white p-6 rounded shadow-md mb-10">
+          <Bar
+            data={formatVolumeData()}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: "top",
+                },
+                tooltip: {
+                  enabled: true,
+                },
+              },
+            }}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        </div>
+
+      {/* Doughnut Chart for Market Dominance */}
+  
+        <div className="w-full md:w-3/4 lg:w-1/2 mx-auto bg-white p-6 rounded shadow-md">
+          <Doughnut
+            data={marketDominanceChartData}
+            options={{
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: "top",
+                },
+              },
+            }}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        </div>
+
+      <div className="text-center mt-6">
+        <Button
+          className="bg-blue-500 text-white"
+          onClick={() => setLoading(true)}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Refresh Data
+        </Button>
+      </div>
     </div>
   );
 }
