@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+Overview of the Project:
 
-## Getting Started
+Live link: https://fin-target-assignment.vercel.app/
 
-First, run the development server:
+Describe what the project does (e.g., "This project displays live Binance cryptocurrency market data using charts for price, volume, and market dominance.").
+Key Features:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Mention the key features of your app, such as:
+    Live price chart (line chart).
+    Volume chart (bar chart).
+    Market dominance chart (doughnut chart).
+    Cryptocurrency and time interval selection.
+    Responsive design for mobile and desktop.
+    Technologies Used:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+List the key technologies and libraries, for example:
+    Next.js for server-side rendering and React components.
+    Chart.js with react-chartjs-2 for interactive charts.
+    WebSockets for live data streaming from Binance.
+    Tailwind CSS for responsive styling.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+How to Run the Project:
+    Include instructions to run the project locally:
+    bash
+    Copy code
+    # Install dependencies
+    npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+    # Run the development server
+    npm run dev
 
-## Learn More
+    # Open http://localhost:3000 in your browser
+File Structure:
 
-To learn more about Next.js, take a look at the following resources:
+Briefly describe the structure of your project files, for example:
+    pages/index.js: Main page with cryptocurrency selection and charts.
+    components/ui/*: UI components like Select, Button.
+    public/: Static files.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+How Data is Fetched:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Explain that data is fetched in real-time using WebSocket connections to Binance, updating the charts dynamically.
 
-## Deploy on Vercel
+Additional Notes (if needed):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Mention any improvements, assumptions, or known issues. For example:
+"The app is optimized for mobile and desktop viewing using Tailwind's responsive utilities."
+"The data is stored temporarily in localStorage for better performance."
